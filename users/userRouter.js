@@ -1,27 +1,44 @@
 const express = require('express');
 const User =require('./userDb.js');
 const middleware = require('../middleware/middleware.js');
+const Post = require('../posts/postDb.js');
 
 const router = express.Router();
 
 // add new user
-router.post('/', (req, res) => {
+router.post('/', middleware.validateUser, (req, res) => {
   const { name } = req.body;
-  console.log(req.body)
-  User.insert({name})
+
+  User.get()
     .then(user => {
-      res.status(201).json(user)
-    })
-    .catch(err => {
-      console.log(err);
-      res.status(500).json({ error: 'Error adding user...'})
+      if (user.some(u => u.name === name)) {
+        res.status(500).json({ error: 'That user already exist!'})
+      } else {
+        User.insert({name})
+        .then(user => {
+          res.status(201).json(user)
+        })
+        .catch(err => {
+          console.log(err);
+          res.status(500).json({ error: 'Error adding user...'})
+        })
+      }
     })
 });
 
 // post new posts
-router.post('/:id/posts', (req, res) => {
-
+router.post('/:id/posts', middleware.validateId, middleware.validatePost, (req, res) => {
+  const post = req.body;
+  Post.insert(post)
+    .then(post => {
+      res.status(200).json(post);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({ error: 'Error adding post...'})
+    })
 });
+
 // GET all users
 router.get('/', (req, res) => {
   User.get()
@@ -33,6 +50,7 @@ router.get('/', (req, res) => {
       res.status(500).json({ error: 'Cannot fetch users...' })
     })
 });
+
 // GET user by their id
 router.get('/:id', middleware.validateId, (req, res) => {
   // const { id } = req.params;
@@ -90,26 +108,7 @@ router.put('/:id', middleware.validateId, (req, res) => {
 
 
 
-//custom middleware
+//custom middleware is in ./middleware
 
-// function validateIdUserId(req, res, next) {
-//   const { id } = req.params;
-//   User.getById(id)
-//     .then(user => {
-//       if (user) {
-//         next();
-//       } else {
-//         res.status(404).json({ error: `User with ID ${id} does not exist`})
-//       }
-//     })
-// };
-
-function validateIdUser(req, res, next) {
-
-};
-
-function validateIdPost(req, res, next) {
-
-};
 
 module.exports = router;

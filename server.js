@@ -1,6 +1,7 @@
 const express = require('express');
 const middleware = require('./middleware/middleware.js');
 const helmet = require('helmet');
+const cors = require('cors');
 
 const userRouter = require('./users/userRouter.js');
 
@@ -10,9 +11,10 @@ const server = express();
 server.use(middleware.logger);
 server.use(helmet());
 server.use(express.json());
-// function logger(req, res, next) {
+server.use(cors({
+  origin: 'http://localhost:3000/'
+}));
 
-// };
 server.use('/api/users' ,userRouter);
 
 server.get('/', (req, res) => {
