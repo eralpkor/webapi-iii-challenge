@@ -1,47 +1,114 @@
-const express = 'express';
+const express = require('express');
+const User =require('./userDb.js');
+const middleware = require('../middleware/middleware.js');
+const Post = require('../posts/postDb.js');
 
 const router = express.Router();
 
-router.post('/', (req, res) => {
+// add new user
+router.post('/', middleware.validateUser, (req, res) => {
+  const { name } = req.body;
 
+  User.get()
+    .then(user => {
+      if (user.some(u => u.name === name)) {
+        res.status(500).json({ error: 'That user already exist!'})
+      } else {
+        User.insert({name})
+        .then(user => {
+          res.status(201).json(user)
+        })
+        .catch(err => {
+          console.log(err);
+          res.status(500).json({ error: 'Error adding user...'})
+        })
+      }
+    })
 });
 
-router.post('/:id/posts', (req, res) => {
-
+// post new posts
+router.post('/:id/posts', middleware.validateId, middleware.validatePost, (req, res) => {
+  const post = req.body;
+  Post.insert(post)
+    .then(post => {
+      res.status(200).json(post);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({ error: 'Error adding post...'})
+    })
 });
 
+// GET all users
 router.get('/', (req, res) => {
-
+  User.get()
+    .then(user => {
+      res.status(200).json(user);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({ error: 'Cannot fetch users...' })
+    })
 });
 
-router.get('/:id', (req, res) => {
-
+// GET user by their id
+router.get('/:id', middleware.validateId, (req, res) => {
+  // const { id } = req.params;
+  res.status(200).json(req.user);
+  // User.getById(id)
+  //   .then(user => {
+  //     user ? res.status(200).json(user) : res.status(404).json({ error: `User with ID ${id} does not exist.`})
+  //   })
 });
 
-router.get('/:id/posts', (req, res) => {
-
+// get user posts
+router.get('/:id/posts', middleware.validateId, (req, res) => {
+  const { id } = req.params;
+  User.getUserPosts(id)
+    .then(post => res.status(200).json(post))
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({ error: `Error getting user with ID ${id} posts...`})
+    })
 });
 
-router.delete('/:id', (req, res) => {
-
+// Delete user by id
+router.delete('/:id', middleware.validateId, (req, res) => {
+  const { id } = req.params;
+  User.remove(id)
+    .then(() => res.status(204).end())
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({ error: `Error deleting user with ${id}`})
+    })
 });
 
-router.put('/:id', (req, res) => {
-
+// Edit user
+router.put('/:id', middleware.validateId, (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  
+  User.update(id, { name })
+    .then(updatedUser => {
+      if (updatedUser) {
+        User.getById(id)
+          .then(user => res.status(200).json(user))
+          .catch(err => {
+            console.log(err);
+            res.status(500).json({error: `Error getting user ID ${id}`});
+          })
+      }
+  })
+  .catch(err => {
+    console.log(err);
+    res.status(500).json({error: `Error updating...`});
+  })
 });
 
-//custom middleware
 
-function validateUserId(req, res, next) {
 
-};
 
-function validateUser(req, res, next) {
+//custom middleware is in ./middleware
 
-};
-
-function validatePost(req, res, next) {
-
-};
 
 module.exports = router;
